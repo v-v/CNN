@@ -109,7 +109,7 @@ class data:
 				f.close()
 	
 			if expectedBytes != actualBytes: raise Exception("Number of expected bytes differs from actual while loading "+ fnameLabels)
-	
+
 			# multiple classes representation
 			# 1 - belongs to class
 			# 0 - all others
@@ -120,6 +120,8 @@ class data:
 				classes = np.zeros(nClasses)
 				classes[labels[i]] = 1
 				labelsMultipleClasses.append(classes)
+
+			if len(labelsMultipleClasses) != len(images): raise Exception("Number of images and labels does not match")
 	
 		print "Saving as packaged list"	
 	
@@ -129,12 +131,7 @@ class data:
 		else:
 			cPickle.dump((images), f)
 
-	def loadData(self, fName):
-		f = gzip.open(fName)
-		data = cPickle.load(f)
-		f.close()
-		return data
-	
+
 	def normalize(self, images):
 		norm = 1.0 * images[0].shape[0] * images[0].shape[1]
 		for img in range(len(images)):
@@ -142,26 +139,34 @@ class data:
 			m = s / norm
 
 			# computing std
-			std = 0
+			std = 0.0
 
-			print "PRIJE: Mean = ", m, "\t Std = ", std
 			for i in range(self.nRows):
 				for j in range(self.nCols):
 					std += (images[img][i][j] - m) ** 2.0
 
 			std = np.sqrt(std/norm)
-			print "Mean = ", m, "\t Std = ", std
 
-#		return images	
+			# mean and std normalization
+			for i in range(images[0].shape[0]):
+				for j in range(images[0].shape[1]):
+					images[img][i][j] = (images[img][i][j] - m)/std 
+
+	def loadData(self, fName):
+		f = gzip.open(fName)
+		data = cPickle.load(f)
+		f.close()
+		return data
 
 	# shows a few (n) samples from the given dataset (in pkl format)
 	def visualizeRandomSamples(self, images, labels, n, fName = None):
 		if len(images) != len(labels): raise Exception("visualizeRandomSamples: number of images and labels doesn't match")
-
+		from pprint import pprint
 		for i in range(n):
 			c = np.random.randint(len(images)-1)
 			plt.subplot(1, n, i+1)
 			plt.imshow(images[c], cmap=plt.cm.gray)
+			pprint(images[c])
 			plt.title("image("+str(c)+")="+str(np.argmax(labels[c])))
 
 		if fName:
@@ -171,16 +176,14 @@ class data:
 
 		
 		
-		
+if __name__ == "__main__":		
 	
-d = data()
+	d = data()
+	
+	#d.convertIDX("../data/MNISTtrain-norm.pkl", "../data/train-images.idx3-ubyte", "../data/train-labels.idx1-ubyte", normalize = True, padding = 2)
+	#d.convertIDX("../data/MNISTtest-norm.pkl", "../data/t10k-images.idx3-ubyte", "../data/t10k-labels.idx1-ubyte", normalize = True, padding = 2)
+	
+	images, labels = d.loadData("../data/MNISTtrain-norm.pkl")
+	d.visualizeRandomSamples(images, labels, 3 )
+	#d.visualizeRandomSamples(images, labels, 3, "out.png" )
 
-#d.convertIDX("data/MNISTtrain.pkl", "data/train-images.idx3-ubyte", "data/train-labels.idx1-ubyte")
-#d.convertIDX("data/MNISTtest.pkl", "data/t10k-images.idx3-ubyte", "data/t10k-labels.idx1-ubyte")
-
-#images, labels = d.loadData("data/MNISTtrain.pkl")
-#d.visualizeRandomSamples(images, labels, 3 )
-#d.visualizeRandomSamples(images, labels, 3, "out.png" )
-
-d.convertIDX("data/MNISTtrain-norm.pkl", "data/train-images.idx3-ubyte", "data/train-labels.idx1-ubyte", normalize = True, padding = 2)
-d.convertIDX("data/MNISTtest-norm.pkl", "data/t10k-images.idx3-ubyte", "data/t10k-labels.idx1-ubyte", normalize = True, padding = 2)
