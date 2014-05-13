@@ -53,21 +53,14 @@ class layer1D:
 		self.dErrors = np.sum( (self.x - expectedOutputs) ** 2.0) / 2.0
 		return self.dErrors
 	
-	# set derivative
-	def set_deriv(self, deriv):
-		self.deriv = deriv
-	
-	def get_deriv(self):
-		return self.deriv
+	# set layer error
+	def set_error(self, deriv):
+		self.error = deriv
 
-	# get error derivatives
-	def get_dErr(self):
-		return self.dErr
+	# get layer error
+	def get_error(self):
+		return self.error
 
-	# set error derivatives
-	def set_dErr(self, dErr):
-		self.dErr = dErr
-		
 
 # fullConnection
 # represents a full connection between two
@@ -126,9 +119,6 @@ class fullConnection:
 		#print "y = ", y
 		self.currLayer.set_x(y)
 
-		# compute and store output derivatives
-		self.currLayer.set_deriv(self.act.deriv(z))
-
 		return y
 	
 	def bprop(self, ni, target = None, verbose = False):
@@ -136,55 +126,41 @@ class fullConnection:
 		if verbose: 
 			print "out = ", yj
 			print "w = ", self.w
-		# compute error
+
+		# compute or retreive error of current layer
 		if self.currLayer.isOutput:
 			if target is None: raise Exception("bprop(): target values needed for output layer")
-			err = -(target - yj)
+			currErr = -(target - yj) * self.act.deriv(yj)
+			self.currLayer.set_error(currErr)
 		else:
-			err = self.currLayer.get_dErr()
+			currErr = self.currLayer.get_error()
 
-		# compute gradients out
+		if verbose: print "currErr =  ", currErr
 
-		if verbose: print "dE_dyj = ", dE_dyj
+		yi = np.append(self.prevLayer.get_x(), [1])
+		# compute error of previous layer
+		if not self.prevLayer.isInput:
+			prevErr = np.zeros(len(yi))
+			for i in range(len(yi)):
+				prevErr[i] = sum(currErr * self.w[i]) * self.act.deriv(yi[i])
 
-		# compute dE_dzj
-		yj = self.currLayer.get_x()
-		dE_dzj = yj * (1 - yj) * dE_dyj
-		if verbose: print "dE_dzj = ", dE_dzj
+			self.prevLayer.set_error(np.delete(prevErr,-1))
 
-		# backpropagate to dE/dyi
-		yi = self.prevLayer.get_x()
-		yi = np.append(yi, [1])
-		if verbose: print "yi = ", yi
-
-		if len(yi) != self.w.shape[0]: raise Exception("bprop(): layer sizes mismatch")
-		dE_dyi = np.zeros(self.w.shape[0])
-
-		for i in range(self.w.shape[0]):
-			dE_dyi[i] += sum(self.w[i] * dE_dzj)
-
-		if verbose: print "dE_dyi = ", dE_dyi
-		self.prevLayer.set_dErr(np.delete(dE_dyi,-1))
-
-		# computing dE/dw
-		dE_dw = np.zeros(self.w.shape)
-		for i in range(self.w.shape[0]):
-			dE_dw[i] = yi[i] * dE_dyj
-
-		dw = ni * dE_dw
-		
-		if verbose: print "ni * dE_dw = ", dw
-		self.w -= dw
+		# compute weight updates
+		dw = np.dot(np.array(yi)[np.newaxis].T, np.array(currErr)[np.newaxis])
+		self.w -= ni * dw
 
 if __name__ == "__main__":		
 
 	inputs = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
-	outs   = np.array([[1, 0], [0, 1], [0, 1], [1, 0]])
+#	outs   = np.array([[1, 0], [0, 1], [0, 1], [1, 0]])
+	outs   = np.array([[1], [1], [0], [0]])
 
 	layer0 = layer1D(2, isInput = True, x = inputs[0])
 	layer1 = layer1D(4)
-	layer2 = layer1D(100)
-	layer3 = layer1D(2, isOutput = True )
+#	layer2 = layer1D(100)
+#	layer3 = layer1D(2, isOutput = True )
+	layer2 = layer1D(1, isOutput = True )
 
 	subnet01 = fullConnection(layer0, layer1)
 	#subnet01 = fullConnection(layer0, layer1, w = np.array([[0, 100, -100, 0], [0, -100, 100, 0], [0, -5, -5, -5]]) )
@@ -192,7 +168,7 @@ if __name__ == "__main__":
 	subnet12 = fullConnection(layer1, layer2) 
 	#subnet12 = fullConnection(layer1, layer2, w = np.array([[1],[10], [10], [1], [-5]])  )
 
-	subnet23 = fullConnection(layer2, layer3) 
+#	subnet23 = fullConnection(layer2, layer3) 
 
 	ni = 0.1
 	for i in range(100):
@@ -205,7 +181,7 @@ if __name__ == "__main__":
 		subnet01.propagate()
 		#print "\nHIDDEN -> OUT"
 		subnet12.propagate()
-		subnet23.propagate()
+#		subnet23.propagate()
 		#print "\n---------------"
 #		print o, "\t",
 #		if o > o_prev:
@@ -217,10 +193,11 @@ if __name__ == "__main__":
 #		o_prev = o
 	
 		#print "||BPROP 1"
-		subnet23.bprop(ni, outs[sample], verbose = False)
+#		subnet23.bprop(ni, outs[sample], verbose = False)
 	
 		#print "\n||BPROP 2"
-		subnet12.bprop(ni)
+#		subnet12.bprop(ni)
+		subnet12.bprop(ni, outs[sample], verbose = False)
 		subnet01.bprop(ni)
 	
 		#print ""
@@ -228,9 +205,11 @@ if __name__ == "__main__":
 	for i in range(4):
 		layer0.set_x(inputs[i])
 		subnet01.propagate()
-		subnet12.propagate()
-		o = subnet23.propagate()
-		print "In = ", inputs[i], "target = ", np.argmax(outs[i]), " predicted = ", np.argmax(o), "\t details = ", o
+#		subnet12.propagate()
+		o = subnet12.propagate()
+#		o = subnet23.propagate()
+#		print "In = ", inputs[i], "target = ", np.argmax(outs[i]), " predicted = ", np.argmax(o), "\t details = ", o
+		print "In = ", inputs[i], "target = ", outs[i], " out = ", o
 	
 
 
