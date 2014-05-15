@@ -87,7 +87,7 @@ class fullConnection:
 		self.nCurr = currLayer.get_size()
 
 		# if the current layer has a bias
-		# we add another weight to a permanent 1
+		# we add another weight pointing to a permanent 1
 		if currLayer.hasBias():
 			self.nPrev += 1
 
@@ -149,18 +149,24 @@ class fullConnection:
 		# compute weight updates
 		dw = np.dot(np.array(yi)[np.newaxis].T, np.array(currErr)[np.newaxis])
 		self.w -= ni * dw
+	
+	def get_weights(self):
+		return self.w
+	
+	def set_weights(self, w):
+		self.w = w
 
 if __name__ == "__main__":		
 
 	inputs = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
-#	outs   = np.array([[1, 0], [0, 1], [0, 1], [1, 0]])
-	outs   = np.array([[1], [1], [0], [0]])
+	outs   = np.array([[1, 0], [1, 0], [0, 1], [0, 1]])
+#	outs   = np.array([[1], [1], [0], [0]])
 
 	layer0 = layer1D(2, isInput = True, x = inputs[0])
-	layer1 = layer1D(4)
-#	layer2 = layer1D(100)
-#	layer3 = layer1D(2, isOutput = True )
-	layer2 = layer1D(1, isOutput = True )
+	layer1 = layer1D(50)
+	layer2 = layer1D(100)
+	layer3 = layer1D(2, isOutput = True )
+#	layer2 = layer1D(1, isOutput = True )
 
 	subnet01 = fullConnection(layer0, layer1)
 	#subnet01 = fullConnection(layer0, layer1, w = np.array([[0, 100, -100, 0], [0, -100, 100, 0], [0, -5, -5, -5]]) )
@@ -168,12 +174,12 @@ if __name__ == "__main__":
 	subnet12 = fullConnection(layer1, layer2) 
 	#subnet12 = fullConnection(layer1, layer2, w = np.array([[1],[10], [10], [1], [-5]])  )
 
-#	subnet23 = fullConnection(layer2, layer3) 
+	subnet23 = fullConnection(layer2, layer3) 
 
 	ni = 0.1
 	for i in range(100):
-		#sample = np.random.randint(len(inputs))
-		sample = i % 4
+		sample = np.random.randint(len(inputs))
+		#sample = i % 4
 
 		layer0.set_x(inputs[sample])
 
@@ -181,7 +187,7 @@ if __name__ == "__main__":
 		subnet01.propagate()
 		#print "\nHIDDEN -> OUT"
 		subnet12.propagate()
-#		subnet23.propagate()
+		subnet23.propagate()
 		#print "\n---------------"
 #		print o, "\t",
 #		if o > o_prev:
@@ -193,11 +199,11 @@ if __name__ == "__main__":
 #		o_prev = o
 	
 		#print "||BPROP 1"
-#		subnet23.bprop(ni, outs[sample], verbose = False)
+		subnet23.bprop(ni, outs[sample], verbose = False)
 	
 		#print "\n||BPROP 2"
-#		subnet12.bprop(ni)
-		subnet12.bprop(ni, outs[sample], verbose = False)
+		subnet12.bprop(ni)
+#		subnet12.bprop(ni, outs[sample], verbose = False)
 		subnet01.bprop(ni)
 	
 		#print ""
@@ -205,11 +211,11 @@ if __name__ == "__main__":
 	for i in range(4):
 		layer0.set_x(inputs[i])
 		subnet01.propagate()
-#		subnet12.propagate()
-		o = subnet12.propagate()
-#		o = subnet23.propagate()
-#		print "In = ", inputs[i], "target = ", np.argmax(outs[i]), " predicted = ", np.argmax(o), "\t details = ", o
-		print "In = ", inputs[i], "target = ", outs[i], " out = ", o
+		subnet12.propagate()
+#		o = subnet12.propagate()
+		o = subnet23.propagate()
+		print "In = ", inputs[i], "target = ", np.argmax(outs[i]), " predicted = ", np.argmax(o), "\t details = ", o
+#		print "In = ", inputs[i], "target = ", outs[i], " out = ", o
 	
 
 
