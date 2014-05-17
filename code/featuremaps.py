@@ -13,6 +13,9 @@ class layerFM:
 		self.FMs = np.zeros([n, width, height])
 		self.error = np.zeros([n, width, height])
 	
+	def shape(self):
+		return [self.height, self.width]	
+	
 	def get_n(self):
 		return self.n
 
@@ -29,7 +32,7 @@ class layerFM:
 		self.error = error
 	
 	def set_x(self, x):
-		if x.shape != self.FM.shape: raise Exception("FeatureMap: set_x dimensions do not match")
+		if x.shape != self.FMs.shape: raise Exception("FeatureMap: set_x dimensions do not match")
 		self.FMs = x
 	
 	def get_x(self):
