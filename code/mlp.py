@@ -81,10 +81,10 @@ class fullConnection:
 		else:
 			self.act = tanh()
 
-		l, h = self.act.sampleInterval(prevLayer.get_size(), currLayer.get_size())
-
 		self.nPrev = prevLayer.get_size()
 		self.nCurr = currLayer.get_size()
+
+		l, h = self.act.sampleInterval(self.nPrev, self.nCurr)
 
 		# if the current layer has a bias
 		# we add another weight pointing to a permanent 1
