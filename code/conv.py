@@ -210,12 +210,17 @@ if __name__ == "__main__":
 
 	inLayer = layerFM(1, 6, 6, isInput = True)
 	
-	convLayer = layerFM(4, 4, 4)
+#	convLayer = layerFM(4, 4, 4)
+#	convLayerOut = layerFM(4, 1, 1, isOutput = True)
+
+#	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 3, 3, 1, 1, )	
+#	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 4, 4, 1, 1, )
+
+	convLayer = layerFM(4, 3, 3)
 	convLayerOut = layerFM(4, 1, 1, isOutput = True)
 
-	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 3, 3, 1, 1, )
-	
-	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 4, 4, 1, 1, )
+	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 4, 4, 1, 1, )	
+	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 3, 3, 1, 1, )
 
 	inLayer.set_x(in_data[0])
 
@@ -226,7 +231,7 @@ if __name__ == "__main__":
 	conv2.bprop(ni, out_data[0])
 	conv1.bprop(ni)
 
-	for i in range(500):
+	for i in range(5000):
 		#print "\nout = \n", conv1.propagate()
 		inLayer.set_x(in_data[0])
 		conv1.propagate()
@@ -251,3 +256,42 @@ if __name__ == "__main__":
 	inLayer.set_x(in_data[1])
 	conv1.propagate()
 	print conv2.propagate()
+
+	import matplotlib.pyplot as plt
+
+	print conv1.k.shape
+	print conv2.k.shape
+
+	
+	plt.subplot(6, 4, 1)
+	plt.axis('off')
+	plt.imshow(in_data[0][0], cmap=plt.cm.gray)
+	
+	plt.subplot(6, 4, 2)
+	plt.axis('off')
+	plt.imshow(in_data[1][0], cmap=plt.cm.gray)
+
+	plt.subplot(6, 4, 3)
+	plt.axis('off')
+	plt.imshow(in_data[0][0], cmap=plt.cm.gray)
+	
+	plt.subplot(6, 4, 4)
+	plt.axis('off')
+	plt.imshow(in_data[1][0], cmap=plt.cm.gray)
+
+	for i in range(conv1.k.shape[0]):
+		plt.subplot(6, 4, i+5)
+		plt.axis('off')
+		#plt.imshow(conv1.k[i], cmap=plt.cm.gray, interpolation='none')
+		plt.imshow(conv1.k[i], cmap=plt.cm.gray)
+	
+	for i in range(conv2.k.shape[0]):
+		plt.subplot(6, 4, i+9)
+		plt.axis('off')
+		#plt.imshow(conv2.k[i], cmap=plt.cm.gray, interpolation='none')
+		plt.imshow(conv2.k[i], cmap=plt.cm.gray)
+	
+	
+
+	#plt.show()
+	plt.savefig("kernels.png")
