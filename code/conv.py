@@ -81,7 +81,7 @@ class convolutionalConnection:
 			FMs[j] = self.act.func(FMs[j])
 
 
-		print "out = ", FMs
+		#print "out = ", FMs
 		self.currLayer.set_x(FMs)
 		return FMs
 	
@@ -91,9 +91,11 @@ class convolutionalConnection:
 		yj = self.currLayer.get_x() # get output of current layer
 
 		# TODO: A conv. layer cannot be an output, remove computing error part
-		# currErr = self.currLayer.get_error()
-		currErr = -(target - yj) * self.act.deriv(yj)
-		self.currLayer.set_error(currErr)
+		if not self.currLayer.isOutput:
+			currErr = self.currLayer.get_error()
+		else:
+			currErr = -(target - yj) * self.act.deriv(yj)
+			self.currLayer.set_error(currErr)
 		#print "\ncurrent error = \n", currErr
 
 		# compute error in previous layer
@@ -166,91 +168,86 @@ if __name__ == "__main__":
 
 	in_data = np.array([
 	      [
-#	      [[1, 1, 1, 0, 0, 0],
-#	       [1, 1, 1, 0, 0, 0],
-#	       [1, 1, 1, 0, 0, 0],
-#	       [1, 1, 1, 0, 0, 0],
-#	       [1, 1, 1, 0, 0, 0],
-#	       [1, 1, 1, 0, 0, 0]],
+	      [[0, 0, 1, 1, 0, 0],
+	       [0, 1, 1, 1, 0, 0],
+	       [0, 0, 1, 1, 0, 0],
+	       [0, 0, 1, 1, 0, 0],
+	       [0, 0, 1, 1, 0, 0],
+	       [0, 1, 1, 1, 1, 0]],
 
-	      [[1, 1, 1, 0, 0, 0],
-	       [1, 1, 1, 0, 0, 0],
-	       [1, 1, 1, 0, 0, 0],
-	       [1, 1, 1, 0, 0, 0],
-	       [1, 1, 1, 0, 0, 0],
-	       [1, 1, 1, 0, 0, 0]],
 	      ],
-
-
+	      
 	      [
-#	      [[0, 0, 0, 1, 1, 1],
-#	       [0, 0, 0, 1, 1, 1],
-#	       [0, 0, 0, 1, 1, 1],
-#	       [0, 0, 0, 1, 1, 1],
-#	       [0, 0, 0, 1, 1, 1],
-#	       [0, 0, 0, 1, 1, 1]],
-
-	      [[0, 0, 0, 1, 1, 1],
-	       [0, 0, 0, 1, 1, 1],
-	       [0, 0, 0, 1, 1, 1],
-	       [0, 0, 0, 1, 1, 1],
-	       [0, 0, 0, 1, 1, 1],
-	       [0, 0, 0, 1, 1, 1]]
-
+	      [[0, 0, 1, 1, 0, 0],
+	       [0, 1, 1, 1, 1, 0],
+	       [0, 1, 0, 1, 1, 0],
+	       [0, 0, 1, 1, 0, 0],
+	       [0, 1, 1, 0, 0, 0],
+	       [0, 1, 1, 1, 1, 0]]
 
 	      ]
 	      ])
 
-#	out_data = np.array( [
-#	     [[[0]],
-#	      [[0]],
-#	      [[0]],
-#	      [[0]]],
-#
-#	     [[[1]],
-#	      [[1]],
-#	      [[1]],
-#	      [[1]]]
-#	])
-
 	out_data = np.array( [
-	     [[[0]],
-	     ],
-
 	     [[[1]],
-	     ]
+	      [[0]],
+	      [[0]],
+	      [[0]]],
+
+	     [[[0]],
+	      [[1]],
+	      [[0]],
+	      [[0]]]
 	])
 
-	#inLayer = layerFM(2, 6, 6, isInput = True)
+#	out_data = np.array( [
+#	     [[[0]],
+#	     ],
+#
+#	     [[[1]],
+#	     ]
+#	])
+
 	inLayer = layerFM(1, 6, 6, isInput = True)
 	
-	#convLayer = layerFM(4, 1, 1)
-	convLayer = layerFM(1, 1, 1)
+	convLayer = layerFM(4, 4, 4)
+	convLayerOut = layerFM(4, 1, 1, isOutput = True)
 
-	#conv1 = convolutionalConnection(inLayer, convLayer, np.ones([2, 4]), 6, 6, 1, 1, )
-	#conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 6, 6, 1, 1, )
-	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 1]), 6, 6, 1, 1, )
+	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 3, 3, 1, 1, )
+	
+	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 4, 4, 1, 1, )
 
 	inLayer.set_x(in_data[0])
 
 	ni = 0.005
 	#print "out = \n", conv1.propagate()
 	conv1.propagate()
-	conv1.bprop(ni, out_data[0])
-	for i in range(50):
+	conv2.propagate()
+	conv2.bprop(ni, out_data[0])
+	conv1.bprop(ni)
+
+	for i in range(500):
 		#print "\nout = \n", conv1.propagate()
 		inLayer.set_x(in_data[0])
 		conv1.propagate()
-		conv1.bprop(ni, out_data[0])
+		conv2.propagate()
+		conv2.bprop(ni, out_data[0])
+		conv1.bprop(ni)
 		
 		inLayer.set_x(in_data[1])
 		conv1.propagate()
-		conv1.bprop(ni, out_data[1])
+		conv2.propagate()
+		conv2.bprop(ni, out_data[1])
+		conv1.bprop(ni)
 	
 	#print "\nout= \n", conv1.propagate()
 	
+	np.set_printoptions(precision=3)
+
 	inLayer.set_x(in_data[0])
 	conv1.propagate()
+	print conv2.propagate()
 	
 	inLayer.set_x(in_data[1])
 	conv1.propagate()
+	print conv2.propagate()
