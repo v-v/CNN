@@ -51,16 +51,17 @@ class convolutionalConnection:
 		self.biasWeights = np.random.uniform(low = l, high = h, size = [self.currLayer.get_n()])
 	
 	def propagate(self):
-		print "INPUT shape = ", self.currLayer.shape()
-		self.FMs = np.zeros([self.currLayer.get_n(), self.currLayer.shape()[0], self.currLayer.shape()[1]])
+		#print "\nk = ", self.k
+		#print "INPUT shape = ", self.currLayer.shape()
+		FMs = np.zeros([self.currLayer.get_n(), self.currLayer.shape()[0], self.currLayer.shape()[1]])
 		inFMs = self.prevLayer.get_x()
-		print self.FMs
+		#print FMs
 
 		k = 0 # kernel index, there is one foreach i, j combination
 		for j in range(self.currLayer.get_n()): # foreach FM in the current layer
 			for i in range(self.prevLayer.get_n()): # foreach FM in the previous layer
 				if self.connections[i, j] == 1:
-					print "\nprev FM", i, "is connected with FM ", j, "in current layer"
+					#print "\nprev FM", i, "is connected with FM ", j, "in current layer"
 
 					# foreach neuron in the feature map
 					for y_out in range(self.currLayer.shape()[0]):
@@ -69,37 +70,187 @@ class convolutionalConnection:
 							# iterate inside the visual field for that neuron
 							for y_k in range(0, self.kernelHeight, self.stepY):
 								for x_k in range(0, self.kernelWidth, self.stepX):
-									print i, "(", y_out + y_k, ",", x_out + x_k, ") -> ", j, "(", y_out, ",", x_out, ")"
-									self.FMs[j, y_out, x_out] += inFMs[i, y_out + y_k, x_out + x_k] * self.k[k, y_k, x_k]
+#									print i, "(", y_out + y_k, ",", x_out + x_k, ") -> ", j, "(", y_out, ",", x_out, ")"
+									FMs[j, y_out, x_out] += inFMs[i, y_out + y_k, x_out + x_k] * self.k[k, y_k, x_k]
 							# add bias
-							self.FMs[j, y_out, x_out] += 1 * self.biasWeights[j]
+							FMs[j, y_out, x_out] += 1 * self.biasWeights[j]
 				# next kernel
 				k += 1
 
 			# compute sigmoid (of a matrix since it's faster than elementwise)
-			self.FMs[j] = self.act.func(self.FMs[j])
-
-		print self.FMs
+			FMs[j] = self.act.func(FMs[j])
 
 
+		print "out = ", FMs
+		self.currLayer.set_x(FMs)
+		return FMs
+	
+	def bprop(self, ni, target = None, verbose = False):
+		
+		yi = self.prevLayer.get_x() # get output of previous layer
+		yj = self.currLayer.get_x() # get output of current layer
 
+		# TODO: A conv. layer cannot be an output, remove computing error part
+		# currErr = self.currLayer.get_error()
+		currErr = -(target - yj) * self.act.deriv(yj)
+		self.currLayer.set_error(currErr)
+		#print "\ncurrent error = \n", currErr
+
+		# compute error in previous layer
+		prevErr = np.zeros([self.prevLayer.get_n(), self.prevLayer.shape()[0], self.prevLayer.shape()[1]])
+		biasErr = np.zeros([self.currLayer.get_n()])
+
+		k = 0 
+		for j in range(self.currLayer.get_n()): # foreach FM in the current layer
+			for i in range(self.prevLayer.get_n()): # foreach FM in the previous layer
+				if self.connections[i, j] == 1:
+					#print "\nprev FM", i, "is connected with FM ", j, "in current layer"
+
+					# foreach neuron in the feature map
+					for y_out in range(self.currLayer.shape()[0]):
+						for x_out in range(self.currLayer.shape()[1]):
+
+							# iterate inside the visual field for that neuron
+							for y_k in range(0, self.kernelHeight, self.stepY):
+								for x_k in range(0, self.kernelWidth, self.stepX):
+									#FMs[j, y_out, x_out] += inFMs[i, y_out + y_k, x_out + x_k] * self.k[k, y_k, x_k]dd
+									prevErr[i, y_out + y_k, x_out + x_k] += self.k[k, y_k, x_k] * currErr[j, y_out, x_out]
+
+							# add bias
+							biasErr[j] += currErr[j, y_out, x_out] * self.k[k, y_k, x_k]
+				# next kernel
+				k += 1
+
+		for i in range(self.prevLayer.get_n()):
+			prevErr[i] = prevErr[i] * self.act.deriv(yi[i])
+
+		for j in range(self.currLayer.get_n()):
+			biasErr[j] = biasErr[j] * self.act.deriv(1)
+
+		#print "prevErr = \n", prevErr
+		#print "biasErr = \n", biasErr
+
+		# compute weights update
+		dw = np.zeros(self.k.shape)
+		dwBias = np.zeros(self.currLayer.get_n())
+		k = 0 
+		for j in range(self.currLayer.get_n()): # foreach FM in the current layer
+			for i in range(self.prevLayer.get_n()): # foreach FM in the previous layer
+				if self.connections[i, j] == 1:
+					#print "\nprev FM", i, "is connected with FM ", j, "in current layer"
+
+					# foreach neuron in the feature map
+					for y_out in range(self.currLayer.shape()[0]):
+						for x_out in range(self.currLayer.shape()[1]):
+
+							# iterate inside the visual field for that neuron
+							for y_k in range(0, self.kernelHeight, self.stepY):
+								for x_k in range(0, self.kernelWidth, self.stepX):
+									#FMs[j, y_out, x_out] += inFMs[i, y_out + y_k, x_out + x_k] * self.k[k, y_k, x_k]dd
+									dw[k, y_k, x_k] +=  yi[i, y_out + y_k, x_out + x_k] * currErr[j, y_out, x_out]
+
+							# add bias
+							dwBias[j] += 1 * currErr[j, y_out, x_out]
+
+				# next kernel
+				k += 1
+
+		#print "dw = \n", dw
+
+		# update weights
+		self.k -= ni * dw
+		self.biasWeights -= ni * dwBias
 
 
 if __name__ == "__main__":
 
-	in_data = np.array([ [
+	in_data = np.array([
+	      [
+#	      [[1, 1, 1, 0, 0, 0],
+#	       [1, 1, 1, 0, 0, 0],
+#	       [1, 1, 1, 0, 0, 0],
+#	       [1, 1, 1, 0, 0, 0],
+#	       [1, 1, 1, 0, 0, 0],
+#	       [1, 1, 1, 0, 0, 0]],
+
 	      [[1, 1, 1, 0, 0, 0],
 	       [1, 1, 1, 0, 0, 0],
 	       [1, 1, 1, 0, 0, 0],
 	       [1, 1, 1, 0, 0, 0],
 	       [1, 1, 1, 0, 0, 0],
-	       [1, 1, 1, 0, 0, 0]]
-	     ] ])
+	       [1, 1, 1, 0, 0, 0]],
+	      ],
+
+
+	      [
+#	      [[0, 0, 0, 1, 1, 1],
+#	       [0, 0, 0, 1, 1, 1],
+#	       [0, 0, 0, 1, 1, 1],
+#	       [0, 0, 0, 1, 1, 1],
+#	       [0, 0, 0, 1, 1, 1],
+#	       [0, 0, 0, 1, 1, 1]],
+
+	      [[0, 0, 0, 1, 1, 1],
+	       [0, 0, 0, 1, 1, 1],
+	       [0, 0, 0, 1, 1, 1],
+	       [0, 0, 0, 1, 1, 1],
+	       [0, 0, 0, 1, 1, 1],
+	       [0, 0, 0, 1, 1, 1]]
+
+
+	      ]
+	      ])
+
+#	out_data = np.array( [
+#	     [[[0]],
+#	      [[0]],
+#	      [[0]],
+#	      [[0]]],
+#
+#	     [[[1]],
+#	      [[1]],
+#	      [[1]],
+#	      [[1]]]
+#	])
+
+	out_data = np.array( [
+	     [[[0]],
+	     ],
+
+	     [[[1]],
+	     ]
+	])
+
+	#inLayer = layerFM(2, 6, 6, isInput = True)
 	inLayer = layerFM(1, 6, 6, isInput = True)
 	
-	convLayer = layerFM(4, 1, 1)
+	#convLayer = layerFM(4, 1, 1)
+	convLayer = layerFM(1, 1, 1)
 
-	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 6, 6, 1, 1, )
+	#conv1 = convolutionalConnection(inLayer, convLayer, np.ones([2, 4]), 6, 6, 1, 1, )
+	#conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 6, 6, 1, 1, )
+	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 1]), 6, 6, 1, 1, )
 
 	inLayer.set_x(in_data[0])
+
+	ni = 0.005
+	#print "out = \n", conv1.propagate()
+	conv1.propagate()
+	conv1.bprop(ni, out_data[0])
+	for i in range(50):
+		#print "\nout = \n", conv1.propagate()
+		inLayer.set_x(in_data[0])
+		conv1.propagate()
+		conv1.bprop(ni, out_data[0])
+		
+		inLayer.set_x(in_data[1])
+		conv1.propagate()
+		conv1.bprop(ni, out_data[1])
+	
+	#print "\nout= \n", conv1.propagate()
+	
+	inLayer.set_x(in_data[0])
+	conv1.propagate()
+	
+	inLayer.set_x(in_data[1])
 	conv1.propagate()

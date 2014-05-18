@@ -6,7 +6,7 @@ from utils import *
 
 class layerFM:
 	def __init__(self, n, width, height, isInput = False):
-		if n != 1 and isInput: raise Exception("Input layer can have only one feature map")
+	#	if n != 1 and isInput: raise Exception("Input layer can have only one feature map")
 		self.n = n
 		self.width = width
 		self.height = height
