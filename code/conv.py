@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import matplotlib.pyplot as plt
 from utils import *
 from featuremaps import *
 
@@ -29,16 +30,16 @@ class convolutionalConnection:
 		   	raise Exception("convolutionalConnection: connection matrix shape does not match number" \
 			"of feature maps in connecting layers")
 
-		if np.ceil((self.prevLayer.get_x().shape[1] - self.kernelHeight) / self.stepY + 1) != self.currLayer.get_x().shape[1] or \
-		   np.ceil((self.prevLayer.get_x().shape[2] - self.kernelWidth) / self.stepX + 1) != self.currLayer.get_x().shape[2]:
+		if np.ceil((self.prevLayer.get_FM().shape[1] - self.kernelHeight) / self.stepY + 1) != self.currLayer.get_FM().shape[1] or \
+		   np.ceil((self.prevLayer.get_FM().shape[2] - self.kernelWidth) / self.stepX + 1) != self.currLayer.get_FM().shape[2]:
 		   	raise Exception("Feature maps size mismatch")
 
 		# random init kernels
 		self.nKernels = self.prevLayer.get_n() * self.currLayer.get_n()
 	
 		# compute number of units in each layer (required to initlize weights)
-		nPrev = self.prevLayer.get_n() * self.prevLayer.get_x().shape[1] * self.prevLayer.get_x().shape[2] 
-		nCurr = self.currLayer.get_n() * self.currLayer.get_x().shape[1] * self.currLayer.get_x().shape[2]
+		nPrev = self.prevLayer.get_n() * self.prevLayer.get_FM().shape[1] * self.prevLayer.get_FM().shape[2] 
+		nCurr = self.currLayer.get_n() * self.currLayer.get_FM().shape[1] * self.currLayer.get_FM().shape[2]
 
 		# calculate interval for random weights initialization
 		l, h = self.act.sampleInterval(nPrev, nCurr)
@@ -54,7 +55,7 @@ class convolutionalConnection:
 		#print "\nk = ", self.k
 		#print "INPUT shape = ", self.currLayer.shape()
 		FMs = np.zeros([self.currLayer.get_n(), self.currLayer.shape()[0], self.currLayer.shape()[1]])
-		inFMs = self.prevLayer.get_x()
+		inFMs = self.prevLayer.get_FM()
 		#print FMs
 
 		k = 0 # kernel index, there is one foreach i, j combination
@@ -87,15 +88,15 @@ class convolutionalConnection:
 	
 	def bprop(self, ni, target = None, verbose = False):
 		
-		yi = self.prevLayer.get_x() # get output of previous layer
-		yj = self.currLayer.get_x() # get output of current layer
+		yi = self.prevLayer.get_FM() # get output of previous layer
+		yj = self.currLayer.get_FM() # get output of current layer
 
 		# TODO: A conv. layer cannot be an output, remove computing error part
 		if not self.currLayer.isOutput:
-			currErr = self.currLayer.get_error()
+			currErr = self.currLayer.get_FM_error()
 		else:
 			currErr = -(target - yj) * self.act.deriv(yj)
-			self.currLayer.set_error(currErr)
+			self.currLayer.set_FM_error(currErr)
 		#print "\ncurrent error = \n", currErr
 
 		# compute error in previous layer
@@ -231,7 +232,7 @@ if __name__ == "__main__":
 	conv2.bprop(ni, out_data[0])
 	conv1.bprop(ni)
 
-	for i in range(5000):
+	for it in range(500):
 		#print "\nout = \n", conv1.propagate()
 		inLayer.set_x(in_data[0])
 		conv1.propagate()
@@ -244,7 +245,44 @@ if __name__ == "__main__":
 		conv2.propagate()
 		conv2.bprop(ni, out_data[1])
 		conv1.bprop(ni)
-	
+
+# ---------------------------
+		if it % 10 == 0:
+			plt.subplot(6, 4, 1)
+			plt.axis('off')
+			plt.imshow(in_data[0][0], cmap=plt.cm.gray)
+			
+			plt.subplot(6, 4, 2)
+			plt.axis('off')
+			plt.imshow(in_data[1][0], cmap=plt.cm.gray)
+		
+			plt.subplot(6, 4, 3)
+			plt.axis('off')
+			plt.imshow(in_data[0][0], cmap=plt.cm.gray)
+			
+			plt.subplot(6, 4, 4)
+			plt.axis('off')
+			plt.imshow(in_data[1][0], cmap=plt.cm.gray)
+		
+			for i in range(conv1.k.shape[0]):
+				plt.subplot(6, 4, i+5)
+				plt.axis('off')
+				#plt.imshow(conv1.k[i], cmap=plt.cm.gray, interpolation='none')
+				plt.imshow(conv1.k[i], cmap=plt.cm.gray)
+			
+			for i in range(conv2.k.shape[0]):
+				plt.subplot(6, 4, i+9)
+				plt.axis('off')
+				#plt.imshow(conv2.k[i], cmap=plt.cm.gray, interpolation='none')
+				plt.imshow(conv2.k[i], cmap=plt.cm.gray)
+			
+			
+		
+			#plt.show()
+			plt.savefig("imgs/"+str(it).zfill(6)+"kernels.png")
+
+
+# ----------------------------
 	#print "\nout= \n", conv1.propagate()
 	
 	np.set_printoptions(precision=3)
@@ -257,41 +295,9 @@ if __name__ == "__main__":
 	conv1.propagate()
 	print conv2.propagate()
 
-	import matplotlib.pyplot as plt
 
 	print conv1.k.shape
 	print conv2.k.shape
 
 	
-	plt.subplot(6, 4, 1)
-	plt.axis('off')
-	plt.imshow(in_data[0][0], cmap=plt.cm.gray)
-	
-	plt.subplot(6, 4, 2)
-	plt.axis('off')
-	plt.imshow(in_data[1][0], cmap=plt.cm.gray)
 
-	plt.subplot(6, 4, 3)
-	plt.axis('off')
-	plt.imshow(in_data[0][0], cmap=plt.cm.gray)
-	
-	plt.subplot(6, 4, 4)
-	plt.axis('off')
-	plt.imshow(in_data[1][0], cmap=plt.cm.gray)
-
-	for i in range(conv1.k.shape[0]):
-		plt.subplot(6, 4, i+5)
-		plt.axis('off')
-		#plt.imshow(conv1.k[i], cmap=plt.cm.gray, interpolation='none')
-		plt.imshow(conv1.k[i], cmap=plt.cm.gray)
-	
-	for i in range(conv2.k.shape[0]):
-		plt.subplot(6, 4, i+9)
-		plt.axis('off')
-		#plt.imshow(conv2.k[i], cmap=plt.cm.gray, interpolation='none')
-		plt.imshow(conv2.k[i], cmap=plt.cm.gray)
-	
-	
-
-	#plt.show()
-	plt.savefig("kernels.png")
