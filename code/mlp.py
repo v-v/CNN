@@ -48,7 +48,7 @@ class layer1D:
 		return self.withBias
 	
 	# compute MSE for an output layer
-	def MSE(self, expectedOutputs):
+	def sampleMSE(self, expectedOutputs):
 		if not self.isOutput: raise Exception("MSE should only be computed on output neurons")
 		self.dErrors = np.sum( (self.x - expectedOutputs) ** 2.0) / 2.0
 		return self.dErrors

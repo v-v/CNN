@@ -50,3 +50,6 @@ class layerFM:
 	def get_size(self):
 		if self.height != 1 or self.width != 1: raise Exception("Only 1x1 feature maps can be connected to a fully connected (1D) layer")
 		return self.n
+	
+	def set_error(self, err):
+		self.error = err.reshape([len(err),1, 1,])
