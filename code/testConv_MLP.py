@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
 	for it in range(500):
 		#print "\nout = \n", conv1.propagate()
-		inLayer.set_x(in_data[0])
+		inLayer.set_FM(in_data[0])
 		conv01.propagate()
 		conv12.propagate()
 		subnet01.propagate()
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 		conv12.bprop(ni)
 		conv01.bprop(ni)
 		
-		inLayer.set_x(in_data[1])
+		inLayer.set_FM(in_data[1])
 		conv01.propagate()
 		conv12.propagate()
 		subnet01.propagate()
@@ -129,14 +129,14 @@ if __name__ == "__main__":
 	
 	np.set_printoptions(precision=3)
 
-	inLayer.set_x(in_data[0])
+	inLayer.set_FM(in_data[0])
 	conv01.propagate()
 	conv12.propagate()
 	subnet01.propagate()
 	subnet12.propagate()
 	print subnet23.propagate()
 	
-	inLayer.set_x(in_data[1])
+	inLayer.set_FM(in_data[1])
 	conv01.propagate()
 	conv12.propagate()
 	subnet01.propagate()

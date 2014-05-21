@@ -83,7 +83,7 @@ class convolutionalConnection:
 
 
 		#print "out = ", FMs
-		self.currLayer.set_x(FMs)
+		self.currLayer.set_FM(FMs)
 		return FMs
 	
 	def bprop(self, ni, target = None, verbose = False):
@@ -132,6 +132,8 @@ class convolutionalConnection:
 
 		#print "prevErr = \n", prevErr
 		#print "biasErr = \n", biasErr
+
+		self.prevLayer.set_FM_error(prevErr)
 
 		# compute weights update
 		dw = np.zeros(self.k.shape)
@@ -223,7 +225,7 @@ if __name__ == "__main__":
 	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 4, 4, 1, 1, )	
 	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 3, 3, 1, 1, )
 
-	inLayer.set_x(in_data[0])
+	inLayer.set_FM(in_data[0])
 
 	ni = 0.005
 	#print "out = \n", conv1.propagate()
@@ -234,13 +236,13 @@ if __name__ == "__main__":
 
 	for it in range(500):
 		#print "\nout = \n", conv1.propagate()
-		inLayer.set_x(in_data[0])
+		inLayer.set_FM(in_data[0])
 		conv1.propagate()
 		conv2.propagate()
 		conv2.bprop(ni, out_data[0])
 		conv1.bprop(ni)
 		
-		inLayer.set_x(in_data[1])
+		inLayer.set_FM(in_data[1])
 		conv1.propagate()
 		conv2.propagate()
 		conv2.bprop(ni, out_data[1])
@@ -287,11 +289,11 @@ if __name__ == "__main__":
 	
 	np.set_printoptions(precision=3)
 
-	inLayer.set_x(in_data[0])
+	inLayer.set_FM(in_data[0])
 	conv1.propagate()
 	print conv2.propagate()
 	
-	inLayer.set_x(in_data[1])
+	inLayer.set_FM(in_data[1])
 	conv1.propagate()
 	print conv2.propagate()
 

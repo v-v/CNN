@@ -3,6 +3,7 @@
 
 import numpy as np
 from conv import *
+from pooling import *
 from mlp import *
 
 if __name__ == "__main__":
@@ -38,15 +39,17 @@ if __name__ == "__main__":
 
 	inLayer = layerFM(1, 6, 6, isInput = True)
 	
-	convLayer1 = layerFM(4, 3, 3)
+	convLayer1 = layerFM(4, 4, 4)
+	poolLayer  = layerFM(4, 2, 2)
 	convLayer2 = layerFM(4, 1, 1)
 	fullLayer1 = layer1D(10)
 	fullLayer2 = layer1D(10)
 	fullLayer3 = layer1D(2, isOutput = True )
 
 
-	conv01 = convolutionalConnection(inLayer, convLayer1, np.ones([1, 4]), 4, 4, 1, 1)	
-	conv12 = convolutionalConnection(convLayer1, convLayer2, np.ones([4, 4]), 3, 3, 1, 1)
+	conv01 = convolutionalConnection(inLayer, convLayer1, np.ones([1, 4]), 3, 3, 1, 1)	
+	pool1p = poolingConnection(convLayer1, poolLayer, 2, 2) 
+	convp2 = convolutionalConnection(poolLayer, convLayer2, np.ones([4, 4]), 2, 2, 1, 1)
 	
 	subnet01 = fullConnection(convLayer2, fullLayer1)
 	subnet12 = fullConnection(fullLayer1, fullLayer2) 
@@ -55,11 +58,14 @@ if __name__ == "__main__":
 
 	ni = 0.005
 
-	for it in range(500):
+	for it in range(5000):
 		#print "\nout = \n", conv1.propagate()
-		inLayer.set_x(in_data[0])
+		inLayer.set_FM(in_data[0])
 		conv01.propagate()
-		conv12.propagate()
+#		print "before = \n", convLayer1.FMs
+		pool1p.propagate()
+		convp2.propagate()
+
 		subnet01.propagate()
 		subnet12.propagate()
 		subnet23.propagate()
@@ -68,12 +74,18 @@ if __name__ == "__main__":
 		subnet23.bprop(ni, out_data[0])
 		subnet12.bprop(ni)
 		subnet01.bprop(ni)
-		conv12.bprop(ni)
+#		print "even before = \n", convLayer2.error
+		convp2.bprop(ni)
+#		print "error before = \n", poolLayer.error
+		pool1p.bprop()
+#		print "errors after = \n", convLayer1.error
 		conv01.bprop(ni)
-		
-		inLayer.set_x(in_data[1])
+	
+		inLayer.set_FM(in_data[1])
 		conv01.propagate()
-		conv12.propagate()
+		pool1p.propagate()
+		convp2.propagate()
+
 		subnet01.propagate()
 		subnet12.propagate()
 		subnet23.propagate()
@@ -82,11 +94,13 @@ if __name__ == "__main__":
 		subnet23.bprop(ni, out_data[1])
 		subnet12.bprop(ni)
 		subnet01.bprop(ni)
-		conv12.bprop(ni)
-		conv01.bprop(ni)
+		convp2.bprop(ni)
+		pool1p.bprop()
+		conv01.bprop(ni)	
+
 
 # ---------------------------
-		if it % 10 == 0:
+		if it % 100 == 0:
 
 			print "it =", it, "MSE =", mse1, mse2
 			 
@@ -112,11 +126,11 @@ if __name__ == "__main__":
 				#plt.imshow(conv1.k[i], cmap=plt.cm.gray, interpolation='none')
 				plt.imshow(conv01.k[i], cmap=plt.cm.gray)
 			
-			for i in range(conv12.k.shape[0]):
+			for i in range(convp2.k.shape[0]):
 				plt.subplot(6, 4, i+9)
 				plt.axis('off')
 				#plt.imshow(conv2.k[i], cmap=plt.cm.gray, interpolation='none')
-				plt.imshow(conv12.k[i], cmap=plt.cm.gray)
+				plt.imshow(convp2.k[i], cmap=plt.cm.gray)
 			
 			
 		
@@ -129,16 +143,18 @@ if __name__ == "__main__":
 	
 	np.set_printoptions(precision=3)
 
-	inLayer.set_x(in_data[0])
+	inLayer.set_FM(in_data[0])
 	conv01.propagate()
-	conv12.propagate()
+	pool1p.propagate()
+	convp2.propagate()
 	subnet01.propagate()
 	subnet12.propagate()
 	print subnet23.propagate()
 	
-	inLayer.set_x(in_data[1])
+	inLayer.set_FM(in_data[1])
 	conv01.propagate()
-	conv12.propagate()
+	pool1p.propagate()
+	convp2.propagate()
 	subnet01.propagate()
 	subnet12.propagate()
 	print subnet23.propagate()

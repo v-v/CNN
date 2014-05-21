@@ -33,7 +33,7 @@ class layerFM:
 	def set_FM_error(self, error):
 		self.error = error
 	
-	def set_x(self, x):
+	def set_FM(self, x):
 		if x.shape != self.FMs.shape: raise Exception("FeatureMap: set_x dimensions do not match")
 		self.FMs = x
 	
