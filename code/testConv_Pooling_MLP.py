@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
 	ni = 0.005
 
-	for it in range(5000):
+	for it in range(10000):
 		#print "\nout = \n", conv1.propagate()
 		inLayer.set_FM(in_data[0])
 		conv01.propagate()
