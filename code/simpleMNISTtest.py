@@ -6,6 +6,7 @@ from conv import *
 from pooling import *
 from mlp import *
 from data import *
+from sys import flush
 
 if __name__ == "__main__":
 
@@ -69,6 +70,26 @@ if __name__ == "__main__":
 				print "Iteration", it, "sample", i, "(", labels[seq[i]], "), y =", y, "\t OK current TP =", correct / total
 			else:
 				print "Iteration", it, "sample", i, "(", labels[seq[i]], "), y =", y, "\t x  current TP =", correct / total
+
+			sys.stdout.flush()
+
+			if i % 100 == 0:
+				# save weights, so we can continue
+				f = gzip.open("weights-MNIST-2classes.pkl", 'wb')
+				cPickle.dump((convolution01.k, convolution01.biasWeights, \
+				              convolution23.k, convolution23.biasWeights, \
+					      convolution45.k, convolution45.biasWeights, \
+					      full56.w, full67.w), f)
+
+				# generate kernel visualization
+				for k in range(convolution01.k.shape[0]):
+					plt.subplot(3, 2, k)
+					plt.axis('off')
+					#plt.imshow(convolution1.k[i], cmap=plt.cm.gray, interpolation='none')
+					plt.imshow(convolution01.k[i], cmap=plt.cm.gray)
+
+				plt.savefig("imgs/it"+str(it).zfill(2)+"_img"+str(i).zfill(5)+"_kernels.png")
+
 
 		
 
