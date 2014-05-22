@@ -157,6 +157,29 @@ class data:
 		data = cPickle.load(f)
 		f.close()
 		return data
+	
+	def filterClasses(self, images, labels, classesToKeep):
+		mask = np.zeros([len(classesToKeep), labels[0].shape[0]])
+		for i in range(len(classesToKeep)):
+			mask[i][classesToKeep[i]] = 1
+
+		imagesFiltered = []
+		labelsFiltered = []
+		for i in range(len(images)):
+			for c in range(mask.shape[0]):
+#				print "labels[i] =", labels[i], "mask =", mask
+				if np.all(labels[i] == mask[c]):
+					imagesFiltered.append(images[i])
+					label = np.zeros(len(classesToKeep))
+					label[c] = 1
+					labelsFiltered.append(label)
+
+		print "Filtered", len(images), "images to", len(imagesFiltered)
+		return imagesFiltered, labelsFiltered
+	
+	def saveData(self, fName, images, labels):
+		f = gzip.open(fName, 'wb')
+		cPickle.dump((images, labels), f)
 
 	# shows a few (n) samples from the given dataset (in pkl format)
 	def visualizeRandomSamples(self, images, labels, n, fName = None):
@@ -183,7 +206,15 @@ if __name__ == "__main__":
 	#d.convertIDX("../data/MNISTtrain-norm.pkl", "../data/train-images.idx3-ubyte", "../data/train-labels.idx1-ubyte", normalize = True, padding = 2)
 	#d.convertIDX("../data/MNISTtest-norm.pkl", "../data/t10k-images.idx3-ubyte", "../data/t10k-labels.idx1-ubyte", normalize = True, padding = 2)
 	
-	images, labels = d.loadData("../data/MNISTtrain-norm.pkl")
+#	images, labels = d.loadData("../data/MNISTtrain-norm.pkl")
+#	images, labels = d.filterClasses(images, labels, [0, 1])
+#	d.saveData("../data/MNISTtrain-2-classes-norm.pkl", images, labels)
+
+	images, labels = d.loadData("../data/MNISTtrain-2-classes-norm.pkl")
+
+	print "images = ", len(images), images[0].shape
+	print "labels = ", len(labels), labels[0].shape
+
 	d.visualizeRandomSamples(images, labels, 3 )
 	#d.visualizeRandomSamples(images, labels, 3, "out.png" )
 
