@@ -86,7 +86,7 @@ if __name__ == "__main__":
 					plt.subplot(3, 2, k)
 					plt.axis('off')
 					#plt.imshow(convolution1.k[i], cmap=plt.cm.gray, interpolation='none')
-					plt.imshow(convolution01.k[i], cmap=plt.cm.gray)
+					plt.imshow(convolution01.k[k], cmap=plt.cm.gray)
 
 				plt.savefig("imgs/it"+str(it).zfill(2)+"_img"+str(i).zfill(5)+"_kernels.png")
 
