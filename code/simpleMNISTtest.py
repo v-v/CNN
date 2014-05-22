@@ -6,7 +6,7 @@ from conv import *
 from pooling import *
 from mlp import *
 from data import *
-from sys import flush
+import sys
 
 if __name__ == "__main__":
 

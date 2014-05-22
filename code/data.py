@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import matplotlib as mlp
+mlp.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import cPickle
