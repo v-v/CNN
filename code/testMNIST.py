@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
 			if i % 100 == 0:
 				# save weights, so we can continue
-				f = gzip.open("weights-MNIST-2classes.pkl", 'wb')
+				f = gzip.open("weights-MNIST.pkl", 'wb')
 				cPickle.dump((convolution01.k, convolution01.biasWeights, \
 				              convolution23.k, convolution23.biasWeights, \
 					      convolution45.k, convolution45.biasWeights, \
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 					#plt.imshow(convolution1.k[i], cmap=plt.cm.gray, interpolation='none')
 					plt.imshow(convolution01.k[k], cmap=plt.cm.gray)
 
-				plt.savefig("imgs/it"+str(it).zfill(2)+"_img"+str(i).zfill(5)+"_kernels.png")
+				plt.savefig("imgs-fullMNIST/it"+str(it).zfill(2)+"_img"+str(i).zfill(5)+"_kernels.png")
 
 
 		
