@@ -48,6 +48,11 @@ for i in range(len(datasetLabels)):
 
 print "min = ", min(hist)
 print "max = ", max(hist)
+histFiltered = hist[hist > 100]
+print "#classes > 100 = ", len(histFiltered), "= {",
+for i in range(len(hist)):
+	if hist[i] > 100: print allClasses[i],
+print "}"
 
 width = 10
 fig = plt.figure(num=None, figsize=(50, 6), dpi=80, facecolor='w', edgecolor='k')
