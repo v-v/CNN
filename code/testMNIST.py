@@ -80,6 +80,7 @@ if __name__ == "__main__":
 				              convolution23.k, convolution23.biasWeights, \
 					      convolution45.k, convolution45.biasWeights, \
 					      full56.w, full67.w), f)
+				f.close()
 
 				# generate kernel visualization
 				for k in range(convolution01.k.shape[0]):
