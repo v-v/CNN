@@ -4,16 +4,30 @@
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+from cv2 import cv
 
+mastifDir = "../data/mastif_raw/TS2010/SourceImages"
 
-fNameIn = "../data/mastif_raw/TS2010/SourceImages/index.seq"
+minW = 32
+minH = 32
+rotDev = 0.08726
+locDev = 1
+
+# extracts part of the image defined by a (rotated) rectangualar
+def extract(img, x, y, theta, w, h):
+	center = (x + w/2.0, y + h/2.0)
+	out = cv.CreateImage((w, h), img.depth, img.nChannels)
+	mapping = np.array([[np.cos(theta), -np.sin(theta), center[0]], [np.sin(theta), np.cos(theta), center[1]]])
+	map_matrix = cv.fromarray(mapping)
+	cv.GetQuadrangleSubPix(img, out, map_matrix)
+	return out
 
 allClasses = []
 
 datasetImages = []
 datasetLabels = []
 
-with open(fNameIn) as f:
+with open(mastifDir+'/index.seq') as f:
     for line in f:
 	    imageMatch = re.search('\[(.*)\]\:(.*)', line)
 	    if imageMatch:
@@ -25,17 +39,25 @@ with open(fNameIn) as f:
 			if signMatch:
 				label = signMatch.group(1)
 				if label != "": # why do some entries lack a label?
-					x = signMatch.group(2)
-					y = signMatch.group(3)
-					w = signMatch.group(4)
-					h = signMatch.group(5)
-
-					print fName, ":", label, "at", x,",", y, "size", w, ",", h
-					datasetLabels.append(label)
-
-					# generate a unique set of existing labels
-					if not (label in allClasses):
-						allClasses.append(label)
+					if w >= minW and h >= minH:
+						x = int(int(signMatch.group(2)) + np.random.normal(0, locDev))
+						y = int(int(signMatch.group(3)) + np.random.normal(0, locDev))
+						w = int(int(signMatch.group(4)) + np.random.normal(0, locDev))
+						h = int(int(signMatch.group(5)) + np.random.normal(0, locDev))
+	
+						theta = np.random.normal(0, rotDev)
+	
+						print fName, ":", label, "at", x,",", y, "size", w, ",", h
+						datasetLabels.append(label)
+	
+						# generate a unique set of existing labels
+						if not (label in allClasses):
+							allClasses.append(label)
+	
+						# load the image
+						im = cv.LoadImage(mastifDir+"/"+fName)
+						patch = extract(im, x, y, theta, w, h)
+						cv.SaveImage("tmp/"+fName+".png", patch)
 			
 			else:
 				raise Exception("Error processing MASTIF TS2010, line:"+line)
@@ -49,9 +71,9 @@ for i in range(len(datasetLabels)):
 print "min = ", min(hist)
 print "max = ", max(hist)
 histFiltered = hist[hist > 100]
-print "#classes > 100 = ", len(histFiltered), "= {",
+print "#classes > 100 = ", len(histFiltered), "= {"
 for i in range(len(hist)):
-	if hist[i] > 100: print allClasses[i],
+	if hist[i] > 100: print allClasses[i], "(", hist[i], ")"
 print "}"
 
 width = 10

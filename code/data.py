@@ -132,6 +132,7 @@ class data:
 			cPickle.dump((images, labelsMultipleClasses), f)
 		else:
 			cPickle.dump((images), f)
+		f.close()
 
 
 	def normalize(self, images):
