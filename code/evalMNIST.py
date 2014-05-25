@@ -62,9 +62,9 @@ if __name__ == "__main__":
 			correct += 1.0
 			ok = True
 		if ok:
-			print "Sample", i, "(", labels[seq[i]], "), y =", y, "\t OK current TP =", correct / total
+			print "Sample", i, "(", labels[i], "), y =", y, "\t OK current TP =", correct / total
 		else:
-			print "Sample", i, "(", labels[seq[i]], "), y =", y, "\t x  current TP =", correct / total
+			print "Sample", i, "(", labels[i], "), y =", y, "\t x  current TP =", correct / total
 
 		sys.stdout.flush()
 
