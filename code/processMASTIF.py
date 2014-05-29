@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import sys
 from cv2 import cv
 from cv2 import split as cv2split
 
@@ -9,10 +10,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+import cPickle
+import gzip
+
 # --------------------------------
 #          configuration
 # --------------------------------
 mastifDir = "../data/mastif_raw/TS2010/SourceImages"
+
+trainSetFName = "../data/mastif_ts2010_train.pkl"
+testSetFName  = "../data/mastif_ts2010_test.pkl"
+evalSetFName  = "../data/mastif_ts2010_eval.pkl"
 
 reqImgSize = 44
 padding = 2
@@ -29,16 +37,15 @@ spcTrain   = 500
 spcTest    = 100
 spcEval    = 100
 
-
 percentTrain = 70
 percentTest = 15
 percentEval = 15
 
 # classes that we want to include in the set
-acceptedClasses = ['B32', 'B31', 'A04', 'C44', 'C79', 'C80', 'C86', 'C02', 'A33', 'C11', 'A05', 'B46', 'D10', 'A03', 'E03' ]
+#acceptedClasses = ['B32', 'B31', 'A04', 'C44', 'C79', 'C80', 'C86', 'C02', 'A33', 'C11', 'A05', 'B46', 'D10', 'A03', 'E03' ]
+acceptedClasses = ['A33', 'B31', 'A05', 'B28', 'B32', 'B46', 'A03', 'A44', 'A04', 'C11', 'C02', 'A11']
 
 # --------------------------------
-
 
 
 
@@ -85,19 +92,20 @@ with open(mastifDir+'/index.seq') as f:
 			if signMatch:
 				label = signMatch.group(1)
 				if label != "": # why do some entries lack a label?
+					x =int(signMatch.group(2))
+					y =int(signMatch.group(3))
+					w =int(signMatch.group(4))
+					h =int(signMatch.group(5))
 
-					# generate a unique set of existing labels
-					if not (label in allClasses):
-						allClasses.append(label)
-					
-					datasetLabels.append(label)
+					if w >= reqImgSize and h >= reqImgSize:
+						# generate a unique set of existing labels
+						if not (label in allClasses):
+							allClasses.append(label)
+						
+						datasetLabels.append(label)
 
-					if label in acceptedClasses:
-						x =int(signMatch.group(2))
-						y =int(signMatch.group(3))
-						w =int(signMatch.group(4))
-						h =int(signMatch.group(5))
-						if w >= reqImgSize and h >= reqImgSize:
+						if label in acceptedClasses:
+							
 							#print fName, ":", label, "at", x,",", y, "size", w, ",", h
 	
 							sample = image(fName, x, y, w, h, 0)
@@ -113,17 +121,18 @@ with open(mastifDir+'/index.seq') as f:
 
 # compute dataset statistic
 # -------------------------
-print "The dataset contains a total of", len(allClasses), "classes"
+print "The dataset contains a total of", len(allClasses), "classes for images bigger than", str(reqImgSize), "x", str(reqImgSize)
 hist = np.zeros(len(allClasses))
 for i in range(len(datasetLabels)):
 	hist[allClasses.index(datasetLabels[i])] += 1
 
 print "\nLeast samples per class = ", int(min(hist))
 print "\nMaximum samples per class = ", int(max(hist))
-histFiltered = hist[hist > 100]
-print "\nClasses with more than 100 samples (", len(histFiltered), ") = {"
+limit = 35
+histFiltered = hist[hist > limit]
+print "\nClasses with more than", str(limit), "samples (", len(histFiltered), ") = {"
 for i in range(len(hist)):
-	if hist[i] > 100: print allClasses[i], "(", int(hist[i]), ")"
+	if hist[i] > limit: print allClasses[i], "(", int(hist[i]), ")"
 print "}"
 
 width = 10
@@ -165,6 +174,28 @@ expandDataset(evalSet, spcEval)
 # generate actual samples
 # -----------------------
 
+def normalize3(images):
+	norm = 1.0 * images[0][0].shape[0] * images[0][0].shape[1]
+	for img in range(len(images)):
+		for ch in range(len(images[img])):
+			s = np.sum(images[img][ch])
+			m = s / norm
+	
+			# computing std
+			std = 0.0
+	
+			for i in range(images[0][0].shape[0]):
+				for j in range(images[0][0].shape[1]):
+					std += (images[img][ch][i][j] - m) ** 2.0
+	
+			std = np.sqrt(std/norm)
+	
+			# mean and std normalization
+			for i in range(images[0][0].shape[0]):
+				for j in range(images[0][0].shape[1]):
+					images[img][ch][i][j] = (images[img][ch][i][j] - m)/std 
+	
+
 def generateData(dataset):
 	data = []
 	labels = []
@@ -173,6 +204,7 @@ def generateData(dataset):
 
 	for c in dataset:
 		print c, 
+		sys.stdout.flush()		
 		for i in range(len(dataset[c])):
 			s = dataset[c][i]
 			im = cv.LoadImage(mastifDir+"/"+s.fName)
@@ -206,29 +238,76 @@ def generateData(dataset):
 			imgR = np.zeros([reqImgSize + 2*padding, reqImgSize + 2*padding])
 			imgR[padding:(padding + r.shape[0]), padding:(padding + r.shape[1])] = r
 
-#			print b.shape, g.shape, r.shape
+			data.append([imgB, imgG, imgR])
 
+			label = np.zeros(len(dataset))
+			label[acceptedClasses.index(c)] = 1
 
-			plt.subplot(3, 1, 1)
-			plt.axis('off')
-			plt.imshow(imgB, cmap=plt.cm.gray)
-			plt.subplot(3, 1, 2)
-			plt.axis('off')
-			plt.imshow(imgG, cmap=plt.cm.gray)
-			plt.subplot(3, 1, 3)
-			plt.axis('off')
-			plt.imshow(imgR, cmap=plt.cm.gray)
-			plt.savefig("tmp/"+c+"_"+str(i).zfill(3)+"_1.png")
+			labels.append(label)
 
-			cv.SaveImage("tmp/"+c+"_"+str(i).zfill(3)+"_0.png", patch)
-	print 
-	return None, None
+	print "OK, normalizing...", 
+	sys.stdout.flush()
+	normalize3(data)
+
+	return data, labels
 
 print "\nGenerating datasets... "
-print "Training set",
+print "Training set:",
 trainSetData, trainSetLabels = generateData(trainSet)
-print "done\nTest set",
+print "[done]\nTesting set:",
 testSetData, testSetLabels = generateData(testSet)
-print "done\nEvaluation set",
+print "[done]\nEvaluation set:",
 evalSetData, evalSetLabels = generateData(evalSet)
-print "done"
+print "[done]\n"
+sys.stdout.flush()
+
+# saving
+# ------
+print "Saving training set to", trainSetFName, "..." 
+sys.stdout.flush()
+f = gzip.open(trainSetFName, 'wb')
+cPickle.dump((trainSetData, trainSetLabels), f)
+
+print "Saving testing set to", testSetFName, "..." 
+sys.stdout.flush()
+f = gzip.open(testSetFName, 'wb')
+cPickle.dump((testSetData, testSetLabels), f)
+
+
+print "Saving evaluation set to", evalSetFName, "..." 
+sys.stdout.flush()
+f = gzip.open(evalSetFName, 'wb')
+cPickle.dump((evalSetData, evalSetLabels), f)
+
+
+
+
+# generating a few random samples from the dataset
+# ------------------------------------------------
+def displayRandomSamples(data, labels, fName):
+	fig = plt.figure(num=None, figsize=(10, 40), dpi=80, facecolor='w', edgecolor='k')
+
+	n = 12	
+	for i in range(n):
+		c = np.random.randint(len(data)-1)
+
+		plt.subplot(n, 3, i*3 +1)
+		plt.imshow(data[c][0], cmap=plt.cm.Blues)
+		plt.title("i("+str(c)+", b)="+acceptedClasses[np.argmax(labels[c])])
+
+		plt.subplot(n, 3, i*3 +2)
+		plt.imshow(data[c][1], cmap=plt.cm.Greens)
+		plt.title("i("+str(c)+", g)="+acceptedClasses[np.argmax(labels[c])])
+
+		plt.subplot(n, 3, i*3 +3)
+		plt.imshow(data[c][2], cmap=plt.cm.Reds)
+		plt.title("i("+str(c)+", r)="+acceptedClasses[np.argmax(labels[c])])
+
+	plt.savefig(fName)
+
+print "\nGenerating a few sample images...", 
+sys.stdout.flush()
+displayRandomSamples(trainSetData, trainSetLabels, "trainSet_samples.png")
+displayRandomSamples(testSetData, testSetLabels, "testSet_samples.png")
+displayRandomSamples(evalSetData, evalSetLabels, "evalSet_samples.png")
+print "[done]"
