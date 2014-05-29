@@ -3,6 +3,8 @@
 
 import re
 from cv2 import cv
+from cv2 import split as cv2split
+
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
@@ -12,8 +14,9 @@ from collections import defaultdict
 # --------------------------------
 mastifDir = "../data/mastif_raw/TS2010/SourceImages"
 
-minW = 32
-minH = 32
+reqImgSize = 44
+padding = 2
+
 rotDev = 0.08726
 locDev = 1
 
@@ -94,8 +97,7 @@ with open(mastifDir+'/index.seq') as f:
 						y =int(signMatch.group(3))
 						w =int(signMatch.group(4))
 						h =int(signMatch.group(5))
-				#		if w >= minW and h >= minH:
-						if True:
+						if w >= reqImgSize and h >= reqImgSize:
 							#print fName, ":", label, "at", x,",", y, "size", w, ",", h
 	
 							sample = image(fName, x, y, w, h, 0)
@@ -151,14 +153,82 @@ def expandDataset(dataset, spc):
 
 			dataset[c].append(sample)
 
-print "\nProcessing training set:"
+print "\nAnalyzing training set:"
 expandDataset(trainSet, spcTrain)
 
-print "\nProcessing test set:"
+print "\nAnalyzing test set:"
 expandDataset(testSet, spcTest)
 
-print "\nProcessing evaluation set:"
+print "\nAnalyzing evaluation set:"
 expandDataset(evalSet, spcEval)
 
 # generate actual samples
 # -----------------------
+
+def generateData(dataset):
+	data = []
+	labels = []
+
+	fig = plt.figure(num=None, figsize=(5, 10), dpi=80, facecolor='w', edgecolor='k')
+
+	for c in dataset:
+		print c, 
+		for i in range(len(dataset[c])):
+			s = dataset[c][i]
+			im = cv.LoadImage(mastifDir+"/"+s.fName)
+
+			if s.w > s.h:
+				offsetH = int((s.w - s.h)/2)
+				patch = extract(im, s.x, s.y - offsetH, s.theta, s.w, s.w)
+				currSize = s.w
+			else:
+				offsetW = int((s.h - s.w)/2)
+				patch = extract(im, s.x+offsetW, s.y, s.theta, s.h, s.h)
+				currSize = s.h
+
+			scale = reqImgSize * 1.0 / currSize
+			destSize = int(currSize * scale)
+
+			patchResized = cv.CreateImage((destSize, destSize), patch.depth, patch.nChannels)
+			cv.Resize(patch, patchResized,interpolation=cv.CV_INTER_LINEAR)
+
+
+			x = np.asarray(patchResized[:,:])
+			b,g,r = cv2split(x)
+
+			imgB = np.zeros([reqImgSize + 2*padding, reqImgSize + 2*padding])
+			imgB[padding:(padding + b.shape[0]), padding:(padding + b.shape[1])] = b
+
+			imgG = np.zeros([reqImgSize + 2*padding, reqImgSize + 2*padding])
+			imgG[padding:(padding + g.shape[0]), padding:(padding + g.shape[1])] = g
+
+
+			imgR = np.zeros([reqImgSize + 2*padding, reqImgSize + 2*padding])
+			imgR[padding:(padding + r.shape[0]), padding:(padding + r.shape[1])] = r
+
+#			print b.shape, g.shape, r.shape
+
+
+			plt.subplot(3, 1, 1)
+			plt.axis('off')
+			plt.imshow(imgB, cmap=plt.cm.gray)
+			plt.subplot(3, 1, 2)
+			plt.axis('off')
+			plt.imshow(imgG, cmap=plt.cm.gray)
+			plt.subplot(3, 1, 3)
+			plt.axis('off')
+			plt.imshow(imgR, cmap=plt.cm.gray)
+			plt.savefig("tmp/"+c+"_"+str(i).zfill(3)+"_1.png")
+
+			cv.SaveImage("tmp/"+c+"_"+str(i).zfill(3)+"_0.png", patch)
+	print 
+	return None, None
+
+print "\nGenerating datasets... "
+print "Training set",
+trainSetData, trainSetLabels = generateData(trainSet)
+print "done\nTest set",
+testSetData, testSetLabels = generateData(testSet)
+print "done\nEvaluation set",
+evalSetData, evalSetLabels = generateData(evalSet)
+print "done"
