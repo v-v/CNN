@@ -87,7 +87,8 @@ if __name__ == "__main__":
 				f = gzip.open("weights-MASTIF.pkl", 'wb')
 				cPickle.dump((convolution01.k, convolution01.biasWeights, \
 				              convolution23.k, convolution23.biasWeights, \
-					      convolution45.k, convolution67.biasWeights, \
+					      convolution45.k, convolution45.biasWeights, \
+					      convolution67.k, convolution67.biasWeights, \
 					      full78.w, full89.w), f)
 				f.close()
 
