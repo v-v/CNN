@@ -22,7 +22,10 @@ trainSetFName = "../data/mastif_ts2010_train.pkl"
 testSetFName  = "../data/mastif_ts2010_test.pkl"
 evalSetFName  = "../data/mastif_ts2010_eval.pkl"
 
-reqImgSize = 44
+# a class should have
+limit = 30 	# at least this many images
+reqImgSize = 44 # of at laste this size (in both sets)
+
 padding = 2
 
 rotDev = 0.08726
@@ -35,18 +38,7 @@ locDev = 1
 
 spcTrain   = 500
 spcTest    = 100
-spcEval    = 100
-
-percentTrain = 70
-percentTest = 15
-percentEval = 15
-
-# classes that we want to include in the set
-#acceptedClasses = ['B32', 'B31', 'A04', 'C44', 'C79', 'C80', 'C86', 'C02', 'A33', 'C11', 'A05', 'B46', 'D10', 'A03', 'E03' ]
-acceptedClasses = ['A33', 'B31', 'A05', 'B28', 'B32', 'B46', 'A03', 'A44', 'A04', 'C11', 'C02', 'A11']
-
 # --------------------------------
-
 
 
 # storage for sample parameters
@@ -69,79 +61,105 @@ def extract(img, x, y, theta, w, h):
 	return out
 
 
-# Aggregate samples
-# -----------------
 allClasses = []
-datasetImages = []
-datasetLabels = []
+trainSetStats = []
+testSetStats = []
 
 trainSet = defaultdict(list)
 testSet = defaultdict(list)
-evalSet = defaultdict(list)
 
+with open(mastifDir+'/index.txt') as f:
+	for line in f:
+		match = re.search('(.*)\t(.*)\t(.*)\t(\d+)\t(\d+)\t(\d+)\t(\d+)', line)
+		if match:
+			fName = match.group(1)
+			label = match.group(2).upper()
+			dataset = match.group(3).lower()
+			posX  = int(match.group(4))
+			posY  = int(match.group(5))
+			sizeX  = int(match.group(6))
+			sizeY  = int(match.group(7))
 
-with open(mastifDir+'/index.seq') as f:
-    for line in f:
-	    imageMatch = re.search('\[(.*)\]\:(.*)', line)
-	    if imageMatch:
-		    fName = imageMatch.group(1)
-		    tmp = imageMatch.group(2)
-		    signs = tmp.split("&")
-		    for sign in signs:
-			signMatch = re.search('(.*)@\(x=(.*),y=(.*),w=(.*),h=(.*)\)', sign)
-			if signMatch:
-				label = signMatch.group(1)
-				if label != "": # why do some entries lack a label?
-					x =int(signMatch.group(2))
-					y =int(signMatch.group(3))
-					w =int(signMatch.group(4))
-					h =int(signMatch.group(5))
-
-					if w >= reqImgSize and h >= reqImgSize:
-						# generate a unique set of existing labels
-						if not (label in allClasses):
-							allClasses.append(label)
-						
-						datasetLabels.append(label)
-
-						if label in acceptedClasses:
-							
-							#print fName, ":", label, "at", x,",", y, "size", w, ",", h
+			if sizeX >= reqImgSize and sizeY >= reqImgSize:
+				# generate a unique set of existing labels
+				if not (label in allClasses):
+					allClasses.append(label)
 	
-							sample = image(fName, x, y, w, h, 0)
-							rnd = np.random.uniform(0, percentTrain + percentTest + percentEval)
-							if rnd >= 0 and rnd <= percentTrain:
-								trainSet[label].append(sample)
-							elif rnd > percentTrain and rnd <= percentTrain + percentTest:
-								testSet[label].append(sample)
-							else:
-								evalSet[label].append(sample)
-			else:
-				raise Exception("Error processing MASTIF TS2010, line:"+line)
+				# for statistic purposes
+				if dataset == 'train':
+					trainSetStats.append(label)
+				elif dataset == 'test':
+					testSetStats.append(label)
+				else:
+					print "Unknown dataset", dataset
+					sys.exit(-1)
+	
 
-# compute dataset statistic
-# -------------------------
-print "The dataset contains a total of", len(allClasses), "classes for images bigger than", str(reqImgSize), "x", str(reqImgSize)
-hist = np.zeros(len(allClasses))
-for i in range(len(datasetLabels)):
-	hist[allClasses.index(datasetLabels[i])] += 1
+# generate statistics
+print "The dataset contains a total of", len(allClasses), "classes where images are bigger or equal than", reqImgSize
+histTrain = np.zeros(len(allClasses))
+histTest = np.zeros(len(allClasses))
+for i in range(len(trainSetStats)):
+	histTrain[allClasses.index(trainSetStats[i])] += 1
 
-print "\nLeast samples per class = ", int(min(hist))
-print "\nMaximum samples per class = ", int(max(hist))
-limit = 35
-histFiltered = hist[hist > limit]
-print "\nClasses with more than", str(limit), "samples (", len(histFiltered), ") = {"
-for i in range(len(hist)):
-	if hist[i] > limit: print allClasses[i], "(", int(hist[i]), ")"
+for i in range(len(testSetStats)):
+	histTest[allClasses.index(testSetStats[i])] += 1
+
+# training set histogram
+width = 10
+fig = plt.figure(num=None, figsize=(40, 6), dpi=80, facecolor='w', edgecolor='k')
+x = np.arange(1, len(allClasses)+1)*10
+bar1 = plt.bar(x, histTrain, width, color="y" )
+plt.ylabel( 'broj pojavljivanja' )
+plt.ylabel( 'oznaka znaka (skup za ucenje)' )
+plt.xticks(x + width/2.0, allClasses )
+plt.savefig("hist_MASTIF_train.png")
+
+# test set histogram
+fig = plt.figure(num=None, figsize=(40, 6), dpi=80, facecolor='w', edgecolor='k')
+x = np.arange(1, len(allClasses)+1)*10
+bar1 = plt.bar(x, histTest, width, color="y" )
+plt.ylabel( 'broj pojavljivanja' )
+plt.ylabel( 'oznaka znaka (skup za ispitivanje)' )
+plt.xticks(x + width/2.0, allClasses )
+plt.savefig("hist_MASTIF_test.png")
+
+acceptedClasses = []
+print "\nClasses with more than", str(limit), "samples of size >=",reqImgSize,"= {"
+for i in range(len(allClasses)):
+	if histTrain[i] > limit and histTest[i]:
+		print allClasses[i], "(Train =", int(histTrain[i]),"Test =", int(histTest[i]), ")"
+		acceptedClasses.append(allClasses[i])
 print "}"
 
-width = 10
-fig = plt.figure(num=None, figsize=(50, 6), dpi=80, facecolor='w', edgecolor='k')
-x = np.arange(1, len(allClasses)+1)*10
-bar1 = plt.bar(x, hist, width, color="y" )
-plt.ylabel( '# occurrences' )
-plt.xticks(x + width/2.0, allClasses )
-plt.savefig("hist_MASTIF.png")
+
+# agregate samples within the accepted classes
+trainSet = defaultdict(list)
+testSet = defaultdict(list)
+
+print "\nAgreggating suitable samples...",
+with open(mastifDir+'/index.txt') as f:
+	for line in f:
+		match = re.search('(.*)\t(.*)\t(.*)\t(\d+)\t(\d+)\t(\d+)\t(\d+)', line)
+		if match:
+			fName = match.group(1)
+			label = match.group(2).upper()
+			dataset = match.group(3).lower()
+			x  = int(match.group(4))
+			y  = int(match.group(5))
+			w  = int(match.group(6))
+			h  = int(match.group(7))
+
+			if (w >= reqImgSize) and (h >= reqImgSize) and (label in acceptedClasses):
+				sample = image(fName, x, y, w, h, 0)
+				if dataset == 'train':
+					trainSet[label].append(sample)
+				elif dataset == 'test':
+					testSet[label].append(sample)
+				else:
+					print "Unknown dataset (this shuldn'g have happened!)", dataset
+					sys.exit(-1)
+print "done"
 
 # expand dataset by adding distorted existing samples
 # ---------------------------------------------------
@@ -167,9 +185,6 @@ expandDataset(trainSet, spcTrain)
 
 print "\nAnalyzing test set:"
 expandDataset(testSet, spcTest)
-
-print "\nAnalyzing evaluation set:"
-expandDataset(evalSet, spcEval)
 
 # generate actual samples
 # -----------------------
@@ -253,12 +268,12 @@ def generateData(dataset):
 
 print "\nGenerating datasets... "
 print "Training set:",
+sys.stdout.flush()
 trainSetData, trainSetLabels = generateData(trainSet)
 print "[done]\nTesting set:",
+sys.stdout.flush()
 testSetData, testSetLabels = generateData(testSet)
-print "[done]\nEvaluation set:",
-evalSetData, evalSetLabels = generateData(evalSet)
-print "[done]\n"
+print "[done]\n",
 sys.stdout.flush()
 
 # saving
@@ -272,15 +287,6 @@ print "Saving testing set to", testSetFName, "..."
 sys.stdout.flush()
 f = gzip.open(testSetFName, 'wb')
 cPickle.dump((testSetData, testSetLabels), f)
-
-
-print "Saving evaluation set to", evalSetFName, "..." 
-sys.stdout.flush()
-f = gzip.open(evalSetFName, 'wb')
-cPickle.dump((evalSetData, evalSetLabels), f)
-
-
-
 
 # generating a few random samples from the dataset
 # ------------------------------------------------
@@ -309,5 +315,4 @@ print "\nGenerating a few sample images...",
 sys.stdout.flush()
 displayRandomSamples(trainSetData, trainSetLabels, "trainSet_samples.png")
 displayRandomSamples(testSetData, testSetLabels, "testSet_samples.png")
-displayRandomSamples(evalSetData, evalSetLabels, "evalSet_samples.png")
 print "[done]"
