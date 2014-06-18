@@ -35,7 +35,7 @@ if __name__ == "__main__":
 	full78         = fullConnection(convLayer7, hiddenLayer8)
 	full89         = fullConnection(hiddenLayer8, outputLayer9)
 
-	f = gzip.open("weights-MASTIF_simplified.pkl")
+	f = gzip.open("weights-MASTIF.pkl")
 	(convolution01.k, convolution01.biasWeights, \
 	 convolution23.k, convolution23.biasWeights, \
 	 convolution45.k, convolution45.biasWeights, \
