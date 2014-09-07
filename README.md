@@ -2,7 +2,8 @@
 Convolutional Neural Network library
 
 copyright (c) 2014 Vedran Vukotic
-gmail: vevukotic
+
+contact (gmail): vevukotic
 
 
 This is a simple library that alows to easily create, train and test
