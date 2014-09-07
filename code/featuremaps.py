@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+
+# featuremaps.py - defines feature maps
+# (2D data structures used in CNNs)
+
 import numpy as np
 from utils import *
 
 class layerFM:
 	def __init__(self, n, width, height, isInput = False, isOutput = False):
-	#	if n != 1 and isInput: raise Exception("Input layer can have only one feature map")
 		self.n = n
 		self.width = width
 		self.height = height

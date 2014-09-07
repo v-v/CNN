@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# conv.py - forward and back propagation for convolutional layers
+
+
 import numpy as np
 from utils import *
 from featuremaps import *
@@ -51,17 +58,13 @@ class convolutionalConnection:
 		self.biasWeights = np.random.uniform(low = l, high = h, size = [self.currLayer.get_n()])
 	
 	def propagate(self):
-		#print "\nk = ", self.k
-		#print "INPUT shape = ", self.currLayer.shape()
 		FMs = np.zeros([self.currLayer.get_n(), self.currLayer.shape()[0], self.currLayer.shape()[1]])
 		inFMs = self.prevLayer.get_FM()
-		#print FMs
 
 		k = 0 # kernel index, there is one foreach i, j combination
 		for j in range(self.currLayer.get_n()): # foreach FM in the current layer
 			for i in range(self.prevLayer.get_n()): # foreach FM in the previous layer
 				if self.connections[i, j] == 1:
-					#print "\nprev FM", i, "is connected with FM ", j, "in current layer"
 
 					# foreach neuron in the feature map
 					for y_out in range(self.currLayer.shape()[0]):
@@ -70,7 +73,6 @@ class convolutionalConnection:
 							# iterate inside the visual field for that neuron
 							for y_k in range(0, self.kernelHeight, self.stepY):
 								for x_k in range(0, self.kernelWidth, self.stepX):
-#									print i, "(", y_out + y_k, ",", x_out + x_k, ") -> ", j, "(", y_out, ",", x_out, ")"
 									FMs[j, y_out, x_out] += inFMs[i, y_out + y_k, x_out + x_k] * self.k[k, y_k, x_k]
 							# add bias
 							FMs[j, y_out, x_out] += 1 * self.biasWeights[j]
@@ -106,7 +108,6 @@ class convolutionalConnection:
 		for j in range(self.currLayer.get_n()): # foreach FM in the current layer
 			for i in range(self.prevLayer.get_n()): # foreach FM in the previous layer
 				if self.connections[i, j] == 1:
-					#print "\nprev FM", i, "is connected with FM ", j, "in current layer"
 
 					# foreach neuron in the feature map
 					for y_out in range(self.currLayer.shape()[0]):
@@ -129,8 +130,6 @@ class convolutionalConnection:
 		for j in range(self.currLayer.get_n()):
 			biasErr[j] = biasErr[j] * self.act.deriv(1)
 
-		#print "prevErr = \n", prevErr
-		#print "biasErr = \n", biasErr
 
 		self.prevLayer.set_FM_error(prevErr)
 
@@ -141,7 +140,6 @@ class convolutionalConnection:
 		for j in range(self.currLayer.get_n()): # foreach FM in the current layer
 			for i in range(self.prevLayer.get_n()): # foreach FM in the previous layer
 				if self.connections[i, j] == 1:
-					#print "\nprev FM", i, "is connected with FM ", j, "in current layer"
 
 					# foreach neuron in the feature map
 					for y_out in range(self.currLayer.shape()[0]):
@@ -159,146 +157,8 @@ class convolutionalConnection:
 				# next kernel
 				k += 1
 
-		#print "dw = \n", dw
 
 		# update weights
 		self.k -= ni * dw
 		self.biasWeights -= ni * dwBias
-
-
-if __name__ == "__main__":
-
-	in_data = np.array([
-	      [
-	      [[0, 0, 1, 1, 0, 0],
-	       [0, 1, 1, 1, 0, 0],
-	       [0, 0, 1, 1, 0, 0],
-	       [0, 0, 1, 1, 0, 0],
-	       [0, 0, 1, 1, 0, 0],
-	       [0, 1, 1, 1, 1, 0]],
-
-	      ],
-	      
-	      [
-	      [[0, 0, 1, 1, 0, 0],
-	       [0, 1, 1, 1, 1, 0],
-	       [0, 1, 0, 1, 1, 0],
-	       [0, 0, 1, 1, 0, 0],
-	       [0, 1, 1, 0, 0, 0],
-	       [0, 1, 1, 1, 1, 0]]
-
-	      ]
-	      ])
-
-	out_data = np.array( [
-	     [[[1]],
-	      [[0]],
-	      [[0]],
-	      [[0]]],
-
-	     [[[0]],
-	      [[1]],
-	      [[0]],
-	      [[0]]]
-	])
-
-#	out_data = np.array( [
-#	     [[[0]],
-#	     ],
-#
-#	     [[[1]],
-#	     ]
-#	])
-
-	inLayer = layerFM(1, 6, 6, isInput = True)
-	
-#	convLayer = layerFM(4, 4, 4)
-#	convLayerOut = layerFM(4, 1, 1, isOutput = True)
-
-#	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 3, 3, 1, 1, )	
-#	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 4, 4, 1, 1, )
-
-	convLayer = layerFM(4, 3, 3)
-	convLayerOut = layerFM(4, 1, 1, isOutput = True)
-
-	conv1 = convolutionalConnection(inLayer, convLayer, np.ones([1, 4]), 4, 4, 1, 1, )	
-	conv2 = convolutionalConnection(convLayer, convLayerOut, np.ones([4, 4]), 3, 3, 1, 1, )
-
-	inLayer.set_FM(in_data[0])
-
-	ni = 0.005
-	#print "out = \n", conv1.propagate()
-	conv1.propagate()
-	conv2.propagate()
-	conv2.bprop(ni, out_data[0])
-	conv1.bprop(ni)
-
-	for it in range(500):
-		#print "\nout = \n", conv1.propagate()
-		inLayer.set_FM(in_data[0])
-		conv1.propagate()
-		conv2.propagate()
-		conv2.bprop(ni, out_data[0])
-		conv1.bprop(ni)
-		
-		inLayer.set_FM(in_data[1])
-		conv1.propagate()
-		conv2.propagate()
-		conv2.bprop(ni, out_data[1])
-		conv1.bprop(ni)
-
-# ---------------------------
-		if it % 10 == 0:
-			plt.subplot(6, 4, 1)
-			plt.axis('off')
-			plt.imshow(in_data[0][0], cmap=plt.cm.gray)
-			
-			plt.subplot(6, 4, 2)
-			plt.axis('off')
-			plt.imshow(in_data[1][0], cmap=plt.cm.gray)
-		
-			plt.subplot(6, 4, 3)
-			plt.axis('off')
-			plt.imshow(in_data[0][0], cmap=plt.cm.gray)
-			
-			plt.subplot(6, 4, 4)
-			plt.axis('off')
-			plt.imshow(in_data[1][0], cmap=plt.cm.gray)
-		
-			for i in range(conv1.k.shape[0]):
-				plt.subplot(6, 4, i+5)
-				plt.axis('off')
-				#plt.imshow(conv1.k[i], cmap=plt.cm.gray, interpolation='none')
-				plt.imshow(conv1.k[i], cmap=plt.cm.gray)
-			
-			for i in range(conv2.k.shape[0]):
-				plt.subplot(6, 4, i+9)
-				plt.axis('off')
-				#plt.imshow(conv2.k[i], cmap=plt.cm.gray, interpolation='none')
-				plt.imshow(conv2.k[i], cmap=plt.cm.gray)
-			
-			
-		
-			#plt.show()
-			plt.savefig("imgs/"+str(it).zfill(6)+"kernels.png")
-
-
-# ----------------------------
-	#print "\nout= \n", conv1.propagate()
-	
-	np.set_printoptions(precision=3)
-
-	inLayer.set_FM(in_data[0])
-	conv1.propagate()
-	print conv2.propagate()
-	
-	inLayer.set_FM(in_data[1])
-	conv1.propagate()
-	print conv2.propagate()
-
-
-	print conv1.k.shape
-	print conv2.k.shape
-
-	
 

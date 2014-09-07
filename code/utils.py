@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# utils.py - defines activation fuctions, their derivatives,
+# random initlialization ranges and other useful things
+
 import numpy as np
 
 class logistic:

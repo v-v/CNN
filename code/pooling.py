@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# pooling.py - implements forward and backward pooling operations
+
 import numpy as np
 from utils import *
 

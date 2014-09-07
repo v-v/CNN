@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# learnMASTIF_TS2010.py
+# learns a classifier from the FER-MASTIF TS2010 training set
+# stored in data/mastif_ts2010_train.pkl
+
+# after each iteration, the model is stored in weights-MASTIF.pkl
+# be careful, the previous model will be overwritten
+
+# TODO: load previous model, if it exists, before learning
+
 import numpy as np
 from conv import *
 from pooling import *

@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# mlp.py - implements a MultiLayer perceptron
+
+
 import numpy as np
 from utils import *
 
@@ -91,17 +98,11 @@ class fullConnection:
 		if currLayer.hasBias():
 			self.nPrev += 1
 
-#		self.w = np.random.uniform(low = l, high = h, size = [self.nCurr, self.nPrev])
 		if w is None:
 			self.w = np.random.uniform(low = l, high = h, size = [self.nPrev, self.nCurr])
 		else:
 			self.w = w
 
-#		print "prevLayer = ", prevLayer.get_size()
-#		print "currLayer = ", currLayer.get_size()
-#		print "l = ", l, "h = ", h
-
-		#print self.w
 		return None
 	
 	def propagate(self):
@@ -109,14 +110,10 @@ class fullConnection:
 		if self.currLayer.hasBias:
 			x = np.append(x, [1])
 
-#		print "x = ", x
-#		z = np.dot(x, self.w.T)
 		z = np.dot(self.w.T, x)
-#		print "z = ", z
 		
 		# compute and store output
 		y = self.act.func(z)
-		#print "y = ", y
 		self.currLayer.set_x(y)
 
 		return y
@@ -156,67 +153,3 @@ class fullConnection:
 	def set_weights(self, w):
 		self.w = w
 
-if __name__ == "__main__":		
-
-	inputs = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
-	outs   = np.array([[1, 0], [1, 0], [0, 1], [0, 1]])
-#	outs   = np.array([[1], [1], [0], [0]])
-
-	layer0 = layer1D(2, isInput = True, x = inputs[0])
-	layer1 = layer1D(50)
-	layer2 = layer1D(100)
-	layer3 = layer1D(2, isOutput = True )
-#	layer2 = layer1D(1, isOutput = True )
-
-	subnet01 = fullConnection(layer0, layer1)
-	#subnet01 = fullConnection(layer0, layer1, w = np.array([[0, 100, -100, 0], [0, -100, 100, 0], [0, -5, -5, -5]]) )
-
-	subnet12 = fullConnection(layer1, layer2) 
-	#subnet12 = fullConnection(layer1, layer2, w = np.array([[1],[10], [10], [1], [-5]])  )
-
-	subnet23 = fullConnection(layer2, layer3) 
-
-	ni = 0.1
-	for i in range(100):
-		sample = np.random.randint(len(inputs))
-		#sample = i % 4
-
-		layer0.set_x(inputs[sample])
-
-		#print "\nIN -> HIDDEN"
-		subnet01.propagate()
-		#print "\nHIDDEN -> OUT"
-		subnet12.propagate()
-		subnet23.propagate()
-		#print "\n---------------"
-#		print o, "\t",
-#		if o > o_prev:
-#			print "+"
-#		elif o < o_prev:
-#			print "-"
-#		else:
-#			print ""
-#		o_prev = o
-	
-		#print "||BPROP 1"
-		subnet23.bprop(ni, outs[sample], verbose = False)
-	
-		#print "\n||BPROP 2"
-		subnet12.bprop(ni)
-#		subnet12.bprop(ni, outs[sample], verbose = False)
-		subnet01.bprop(ni)
-	
-		#print ""
-
-	for i in range(4):
-		layer0.set_x(inputs[i])
-		subnet01.propagate()
-		subnet12.propagate()
-#		o = subnet12.propagate()
-		o = subnet23.propagate()
-		print "In = ", inputs[i], "target = ", np.argmax(outs[i]), " predicted = ", np.argmax(o), "\t details = ", o
-#		print "In = ", inputs[i], "target = ", outs[i], " out = ", o
-	
-
-
-	

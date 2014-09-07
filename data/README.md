@@ -1,4 +1,4 @@
 CNN
 ===
 
-CNN Implementation
+MNIST and FER-MASTIF TS2010 data

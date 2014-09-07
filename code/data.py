@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# data.py 
+# - loads data in python packed list format
+# - converts original MNIST files (IDX format) to python packed lists
+# - visualizes samples
+
+
 import matplotlib as mlp
 mlp.use('Agg')
 import matplotlib.pyplot as plt

@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Convolutional Neural Network library
+# copyright (c) 2014 Vedran Vukotic
+# gmail: vevukotic
+
+# testMNIST.py - evaluates a model on the MNIST test set
+# The (learnt) model is stored in models/weights-MNIST.pkl
+# The test set is loaded from data/MNISTtest.pkl
+
 import numpy as np
 from conv import *
 from pooling import *
@@ -10,9 +18,7 @@ import sys
 
 if __name__ == "__main__":
 
-	d = data()
-	images, labels = d.loadData("../data/MNISTtrain-norm.pkl")
-	print "Loaded", len(images), "images of shape", images[0].shape
+
 
 	inputLayer0  = layerFM(1, 32, 32, isInput = True) 
 	convLayer1   = layerFM(6, 28, 28)
@@ -32,65 +38,57 @@ if __name__ == "__main__":
 	full67         = fullConnection(hiddenLayer6, outputLayer7)
 
 
-	maxIter = 100
-	eta = 0.001
+	f = gzip.open("../models/weights-MNIST.pkl")
+	(convolution01.k, convolution01.biasWeights, \
+	 convolution23.k, convolution23.biasWeights, \
+	 convolution45.k, convolution45.biasWeights, \
+	 full56.w, full67.w) = cPickle.load(f)
+	f.close()
 
-	seq = np.r_[0:len(images)]
-	for it in range(maxIter):
-		np.random.shuffle(seq)
-
-		total = 0.0
-		correct = 0.0
-		for i in range(len(images)):
-
-			inputLayer0.set_FM(np.array([images[seq[i]]]))
-
-			convolution01.propagate()
-			pooling12.propagate()
-			convolution23.propagate()
-			pooling34.propagate()
-			convolution45.propagate()
-			full56.propagate()
-			y = full67.propagate()
-
-			full67.bprop(eta, labels[seq[i]])
-			full56.bprop(eta)
-			convolution45.bprop(eta)
-			pooling34.bprop()
-			convolution23.bprop(eta)
-			pooling12.bprop()
-			convolution01.bprop(eta)
-
-			total += 1.0
-			ok = False
-			if np.argmax(y) == np.argmax(labels[seq[i]]):
-				correct += 1.0
-				ok = True
-			if ok:
-				print "Iteration", it, "sample", i, "(", labels[seq[i]], "), y =", y, "\t OK current TP =", correct / total
-			else:
-				print "Iteration", it, "sample", i, "(", labels[seq[i]], "), y =", y, "\t x  current TP =", correct / total
-
-			sys.stdout.flush()
-
-			if i % 100 == 0:
-				# save weights, so we can continue
-				f = gzip.open("weights-MNIST.pkl", 'wb')
-				cPickle.dump((convolution01.k, convolution01.biasWeights, \
-				              convolution23.k, convolution23.biasWeights, \
-					      convolution45.k, convolution45.biasWeights, \
-					      full56.w, full67.w), f)
-				f.close()
-
-				# generate kernel visualization
-				for k in range(convolution01.k.shape[0]):
-					plt.subplot(3, 2, k)
-					plt.axis('off')
-					#plt.imshow(convolution1.k[i], cmap=plt.cm.gray, interpolation='none')
-					plt.imshow(convolution01.k[k], cmap=plt.cm.gray)
-
-				plt.savefig("imgs-fullMNIST/it"+str(it).zfill(2)+"_img"+str(i).zfill(5)+"_kernels.png")
+	d = data()
+	images, labels = d.loadData("../data/MNISTtest.pkl")
+	print "Loaded", len(images), "images of shape", images[0].shape
 
 
-		
+	confusionMatrix = np.zeros([10, 10])
+	total = 0.0
+	correct = 0.0
+	for i in range(len(images)):
+
+		inputLayer0.set_FM(np.array([images[i]]))
+
+		convolution01.propagate()
+		pooling12.propagate()
+		convolution23.propagate()
+		pooling34.propagate()
+		convolution45.propagate()
+		full56.propagate()
+		y = full67.propagate()
+
+		total += 1.0
+		ok = False
+		actual = np.argmax(labels[i])
+		predicted = np.argmax(y)
+		if actual == predicted:
+			correct += 1.0
+			ok = True
+		if ok:
+			print "Sample", i, "(", actual, "): OK"
+		else:
+			print "Sample", i, "(", actual, "), thought it was y =", predicted
+			# save wrong classified sample
+			plt.imshow(images[i], cmap=plt.cm.gray)	
+			plt.title("Ispravno:" +str(actual)+"  Dobiveno: "+str(predicted))
+			plt.savefig("../data/misclassifiedMNIST/"+str(i).zfill(5)+". "+str(actual)+" predicted as " + str(predicted)+".png")
+
+
+		sys.stdout.flush()
+		confusionMatrix[actual, predicted] += 1
+
+	
+	print "TP =", correct / total
+	print "Confusion matrix = "
+	np.set_printoptions(precision=1)
+	print confusionMatrix
+
 
